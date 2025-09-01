@@ -1,0 +1,8 @@
+```json
+{
+"summary": "Application cannot connect to MongoDB database, resulting in connection refused errors and impacting all users.",
+"priority": "high",
+"helpfulNotes": "Investigate the network connectivity between the application server and the MongoDB server. Verify that the correct database credentials are used in the application configuration. Check for any firewall rules that might be blocking the connection.  Verify the MongoDB server is running and accessible on the correct port.  Review the application's database connection code for potential errors.  Consider logging the connection attempt to diagnose the issue.  Useful resources: https://docs.mongodb.com/manual/tutorial/connect-to-mongodb-using-javascript/, https://www.mongodb.com/docs/drivers/nodejs/current/fundamentals/connection-string/.",
+"relatedSkills": ["Node.js", "MongoDB", "Networking", "Database administration"]
+}
+```

@@ -1,4 +1,4 @@
-import brcypt from "bcrypt";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import { inngest } from "../inngest/client.js";
@@ -6,7 +6,8 @@ import { inngest } from "../inngest/client.js";
 export const signup = async (req, res) => {
   const { email, password, skills = [] } = req.body;
   try {
-    const hashed = brcypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
+    console.log("Hashed password:", hashed); // Log the hashed password
     const user = await User.create({ email, password: hashed, skills });
 
     //Fire inngest event
@@ -25,6 +26,7 @@ export const signup = async (req, res) => {
 
     res.json({ user, token });
   } catch (error) {
+    console.error("Signup error:", error); // Log the full error
     res.status(500).json({ error: "Signup failed", details: error.message });
   }
 };
@@ -33,10 +35,10 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = User.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ error: "User not found" });
 
-    const isMatch = await brcypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });

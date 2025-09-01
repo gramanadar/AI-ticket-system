@@ -6,10 +6,18 @@ export default function TicketDetailsPage() {
   const { id } = useParams();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [newStatus, setNewStatus] = useState("");
+  const [newHelpfulNotes, setNewHelpfulNotes] = useState("");
+  const [user, setUser] = useState(null);
 
   const token = localStorage.getItem("token");
 
   useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
     const fetchTicket = async () => {
       try {
         const res = await fetch(
@@ -23,6 +31,8 @@ export default function TicketDetailsPage() {
         const data = await res.json();
         if (res.ok) {
           setTicket(data.ticket);
+          setNewStatus(data.ticket.status || "");
+          setNewHelpfulNotes(data.ticket.helpfulNotes || "");
         } else {
           alert(data.message || "Failed to fetch ticket");
         }
@@ -37,9 +47,40 @@ export default function TicketDetailsPage() {
     fetchTicket();
   }, [id]);
 
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/tickets/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus, helpfulNotes: newHelpfulNotes }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setTicket(data.ticket);
+        alert("Ticket updated successfully!");
+      } else {
+        alert(data.message || "Ticket update failed");
+      }
+    } catch (err) {
+      alert("Something went wrong during update");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading)
     return <div className="text-center mt-10">Loading ticket details...</div>;
   if (!ticket) return <div className="text-center mt-10">Ticket not found</div>;
+
+  const isModeratorOrAdmin = user && (user.role === "admin" || (ticket.assignedTo && ticket.assignedTo._id === user._id));
 
   return (
     <div className="max-w-3xl mx-auto p-4">
@@ -90,6 +131,40 @@ export default function TicketDetailsPage() {
               </p>
             )}
           </>
+        )}
+
+        {isModeratorOrAdmin && (
+          <form onSubmit={handleUpdate} className="space-y-3 mt-8">
+            <div className="divider">Update Ticket</div>
+            <div>
+              <label className="label">
+                <span className="label-text">Status</span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+              >
+                <option value="TODO">TODO</option>
+                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                <option value="DONE">DONE</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">
+                <span className="label-text">Helpful Notes</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                placeholder="Add helpful notes"
+                value={newHelpfulNotes}
+                onChange={(e) => setNewHelpfulNotes(e.target.value)}
+              ></textarea>
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? "Updating..." : "Update Ticket"}
+            </button>
+          </form>
         )}
       </div>
     </div>

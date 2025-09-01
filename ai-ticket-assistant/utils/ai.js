@@ -1,4 +1,5 @@
 import { createAgent, gemini } from "@inngest/agent-kit";
+import fs from 'fs/promises';
 
 const analyzeTicket = async (ticket) => {
   const supportAgent = createAgent({
@@ -7,7 +8,7 @@ const analyzeTicket = async (ticket) => {
       apiKey: process.env.GEMINI_API_KEY,
     }),
     name: "AI Ticket Triage Assistant",
-    system: `You are an expert AI assistant that processes technical support tickets. 
+    system: `You are an expert AI assistant that processes technical support tickets.
 
 Your job is to:
 1. Summarize the issue.
@@ -49,15 +50,20 @@ Ticket information:
 - Title: ${ticket.title}
 - Description: ${ticket.description}`);
 
-  const raw = response.output[0].context;
+  const rawResponseObject = JSON.parse(response.raw);
+  const raw = rawResponseObject.candidates?.[0]?.content?.parts?.[0]?.text;
+    await fs.writeFile('rawresponse.text', raw);
 
   try {
     const match = raw.match(/```json\s*([\s\S]*?)\s*```/i);
-    const jsonString = match ? match[1] : raw.trim();
-    return JSON.parse(jsonString);
+    if (match && match[1]) {
+      return JSON.parse(match[1]);
+    }
+    // If no markdown block, try to parse raw directly (for cases where AI might not wrap in markdown)
+    return JSON.parse(raw);
   } catch (e) {
-    console.log("Failed to parse JSON from AI response" + e.message);
-    return null; // watch out for this
+    console.log("Failed to parse JSON from AI response: " + e.message);
+    return null;
   }
 };
 

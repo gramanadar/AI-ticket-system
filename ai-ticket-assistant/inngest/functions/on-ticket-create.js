@@ -15,7 +15,7 @@ export const onTicketCreated = inngest.createFunction(
       //fetch ticket from DB
       const ticket = await step.run("fetch-ticket", async () => {
         const ticketObject = await Ticket.findById(ticketId);
-        if (!ticket) {
+        if (!ticketObject) {
           throw new NonRetriableError("Ticket not found");
         }
         return ticketObject;
@@ -44,15 +44,19 @@ export const onTicketCreated = inngest.createFunction(
       });
 
       const moderator = await step.run("assign-moderator", async () => {
-        let user = await User.findOne({
-          role: "moderator",
-          skills: {
-            $elemMatch: {
-              $regex: relatedskills.join("|"),
-              $options: "i",
+        let user = null;
+        if (relatedskills && relatedskills.length > 0) {
+          user = await User.findOne({
+            role: "moderator",
+            skills: {
+              $elemMatch: {
+                $regex: relatedskills.join("|"),
+                $options: "i",
+              },
             },
-          },
-        });
+          });
+        }
+        
         if (!user) {
           user = await User.findOne({
             role: "admin",
@@ -64,7 +68,7 @@ export const onTicketCreated = inngest.createFunction(
         return user;
       });
 
-      await setp.run("send-email-notification", async () => {
+      await step.run("send-email-notification", async () => {
         if (moderator) {
           const finalTicket = await Ticket.findById(ticket._id);
           await sendMail(
